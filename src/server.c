@@ -39,6 +39,9 @@
 #define SERVER_FILES "./serverfiles"
 #define SERVER_ROOT "./serverroot"
 
+
+#define STREQ(a, b) strcmp((a), (b)) == 0
+
 /**
  * Send an HTTP response
  *
@@ -82,16 +85,13 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 void get_d20(int fd)
 {
     // Generate a random number between 1 and 20 inclusive
-    
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+
+    int rand = random() % 20 + 1;
+    char rand_str[2];
+    sprintf(rand_str, "%d", rand);
 
     // Use send_response() to send it back as text/plain data
-
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    send_response(fd, "HTTP/1.1 200 OK", "text/plain", rand_str, strlen(rand_str));
 }
 
 /**
@@ -171,6 +171,25 @@ void handle_http_request(int fd, struct cache *cache)
     //    Check if it's /d20 and handle that special case
     //    Otherwise serve the requested file by calling get_file()
 
+    char type[3];
+    char endpoint[2048];
+    sscanf(request, "%s %s", type, endpoint);
+    
+    if (STREQ(type, "GET")) {
+        
+
+        if (STREQ(endpoint, "/d20")) {
+            // DEAL WITH d20 endpoint
+
+            get_d20(fd);
+        } else {
+            // DEAL WITH the requested file
+            get_file(fd, cache, endpoint);
+        }
+
+    } else {
+        resp_404(fd); // TODO: REPLACE WITH resp_400 BAD REQUEST after impl.
+    }
 
     // (Stretch) If POST, handle the post request
 }
@@ -210,6 +229,7 @@ int main(void)
             perror("accept");
             continue;
         }
+
 
         // Print out a message that we got the connection
         inet_ntop(their_addr.ss_family,
