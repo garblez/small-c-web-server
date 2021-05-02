@@ -101,23 +101,27 @@ void resp_404(int fd)
 {
     char filepath[4096];
     struct file_data *filedata; 
-    char *mime_type;
+    
 
     // Fetch the 404.html file
     snprintf(filepath, sizeof filepath, "%s/404.html", SERVER_FILES);
     filedata = file_load(filepath);
+    char *mime_type = mime_type_get(filepath);
+
 
     if (filedata == NULL) {
         // TODO: make this non-fatal
         fprintf(stderr, "cannot find system 404 file\n");
         exit(3);
+        //char *msg = "404 File Not Found"; 
+        //send_response(fd, "HTTP/1.1 404 NOT FOUND", "text/plain", msg, sizeof(char)*strlen(msg));
+        
     }
 
-    mime_type = mime_type_get(filepath);
 
     send_response(fd, "HTTP/1.1 404 NOT FOUND", mime_type, filedata->data, filedata->size);
+    //file_free(filedata);
 
-    file_free(filedata);
 }
 
 /**
@@ -128,6 +132,23 @@ void get_file(int fd, struct cache *cache, char *request_path)
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
+    // TODO: Use an LRU cache to dispense files first!
+
+    char filepath[4096];
+    snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path); // Could also strcat
+    
+    printf("FILE: %s\n", filepath);
+    
+    struct file_data *filedata = file_load(filepath);
+
+    if (filedata == NULL) {
+        resp_404(fd); // File not found
+    } else {
+    char *mime_type = mime_type_get(filepath);
+
+        send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
+        file_free(filedata);
+    }
 }
 
 /**
@@ -160,10 +181,6 @@ void handle_http_request(int fd, struct cache *cache)
     }
 
 
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
-
     // Read the first two components of the first line of the request 
  
     // If GET, handle the get endpoints
@@ -174,17 +191,15 @@ void handle_http_request(int fd, struct cache *cache)
     char type[3];
     char endpoint[2048];
     sscanf(request, "%s %s", type, endpoint);
-    
+
     if (STREQ(type, "GET")) {
-        
 
         if (STREQ(endpoint, "/d20")) {
             // DEAL WITH d20 endpoint
-
             get_d20(fd);
         } else {
             // DEAL WITH the requested file
-            get_file(fd, cache, endpoint);
+            get_file(fd, cache, endpoint); // TODO: problem here!
         }
 
     } else {
