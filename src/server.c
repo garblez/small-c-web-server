@@ -116,17 +116,17 @@ void resp_404(int fd)
 
     if (filedata == NULL) {
         // TODO: make this non-fatal
-        fprintf(stderr, "cannot find system 404 file\n");
-        exit(3);
-        //char *msg = "404 File Not Found"; 
-        //send_response(fd, "HTTP/1.1 404 NOT FOUND", "text/plain", msg, sizeof(char)*strlen(msg));
+        //fprintf(stderr, "cannot find system 404 file\n");
+        //exit(3);
+        char *msg = "404 File Not Found"; 
+        send_response(fd, "HTTP/1.1 404 NOT FOUND", "text/plain", msg, sizeof(char)*strlen(msg));
         
+    } else {
+
+
+        send_response(fd, "HTTP/1.1 404 NOT FOUND", mime_type, filedata->data, filedata->size);
+        file_free(filedata);
     }
-
-
-    send_response(fd, "HTTP/1.1 404 NOT FOUND", mime_type, filedata->data, filedata->size);
-    //file_free(filedata);
-
 }
 
 /**
