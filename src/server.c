@@ -58,18 +58,23 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 
     // Build HTTP response and store it in response
 
+    time_t now = time(NULL);
+
+
     int response_length = sprintf(response,
         "%s\n"
+        "%s"
         "Connection: close\n"
         "Content-Length: %d\n"
         "Content-Type: %s\n"
-        "\n"
-        "%s",
-        header, content_length, content_type, body
+        "\n",
+        header, ctime(&now), content_length, content_type
     );
 
+    memcpy(response + response_length, body, content_length);
+
     // Send it all!
-    int rv = send(fd, response, response_length, 0);
+    int rv = send(fd, response, response_length + content_length, 0);
 
     if (rv < 0) {
         perror("send");
@@ -144,8 +149,9 @@ void get_file(int fd, struct cache *cache, char *request_path)
     if (filedata == NULL) {
         resp_404(fd); // File not found
     } else {
-    char *mime_type = mime_type_get(filepath);
 
+        char *mime_type = mime_type_get(filepath);
+        printf("SERVING: %s of size %d and path %s\n", mime_type, filedata->size, filepath);
         send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
         file_free(filedata);
     }
@@ -196,13 +202,16 @@ void handle_http_request(int fd, struct cache *cache)
 
         if (STREQ(endpoint, "/d20")) {
             // DEAL WITH d20 endpoint
+            printf("Get d20\n");
             get_d20(fd);
         } else {
+            printf("Getting file %s\n", endpoint);
             // DEAL WITH the requested file
             get_file(fd, cache, endpoint); // TODO: problem here!
         }
 
     } else {
+        printf("404 Not Found\n");
         resp_404(fd); // TODO: REPLACE WITH resp_400 BAD REQUEST after impl.
     }
 
